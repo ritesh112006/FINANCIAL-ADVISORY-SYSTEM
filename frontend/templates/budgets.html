@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}Budgets - FinWise{% endblock %}
+{% block page_title %}Monthly Budgets{% endblock %}
+{% block page_subtitle %}Category spending limits, warnings, and adjustment suggestions{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Total Budget</span>
+      <span class="metric-badge badge-blue">Target</span>
+    </div>
+    <div class="metric-value">{{ currency }}{{ "{:,.2f}".format(budget_status.total_budget) }}</div>
+    <div class="card-subtitle">For {{ selected_month }}</div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Spent So Far</span>
+      <span class="metric-badge badge-amber">Spent</span>
+    </div>
+    <div class="metric-value">{{ currency }}{{ "{:,.2f}".format(budget_status.total_spent) }}</div>
+    <div class="card-subtitle">
+      {% if budget_status.total_budget > 0 %}
+        {{ ((budget_status.total_spent / budget_status.total_budget) * 100)|round(1) }}% of total budget
+      {% else %}
+        No budget set
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Remaining Balance</span>
+      <span class="metric-badge badge-green">Remaining</span>
+    </div>
+    <div class="metric-value" style="color: #34d399;">
+      {{ currency }}{{ "{:,.2f}".format(budget_status.total_budget - budget_status.total_spent) }}
+    </div>
+    <div class="card-subtitle">Unspent allowance</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <h3 class="card-title">Category Limits</h3>
+    <button class="btn btn-primary btn-sm" onclick="openModal('budgetModal')">+ Set Budget</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Budget Limit</th>
+          <th>Actual Spent</th>
+          <th>Remaining</th>
+          <th>Usage</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in budget_status.categories %}
+        <tr>
+          <td><strong>{{ b.category }}</strong></td>
+          <td>{{ currency }}{{ "{:,.2f}".format(b.budget_limit) }}</td>
+          <td>{{ currency }}{{ "{:,.2f}".format(b.actual_spent) }}</td>
+          <td style="color: {% if b.remaining < 0 %}#f87171{% else %}#34d399{% endif %}; font-weight: 600;">
+            {{ currency }}{{ "{:,.2f}".format(b.remaining) }}
+          </td>
+          <td style="min-width: 140px;">
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill {% if b.status == 'Exceeded' %}danger{% elif 'Near' in b.status %}warning{% endif %}"
+                   style="width: {{ [b.percentage_used, 100]|min }}%;"></div>
+            </div>
+            <span style="font-size: 0.75rem; color: #9ca3af;">{{ b.percentage_used }}%</span>
+          </td>
+          <td>
+            <span class="metric-badge {% if b.status == 'Within Budget' %}badge-green{% elif 'Near' in b.status %}badge-amber{% else %}badge-red{% endif %}">
+              {{ b.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left: 4px solid #8b5cf6;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Budget Adjustment Planner (A* Search)</h3>
+      <p class="card-subtitle">Suggested step-by-step cuts for overspent categories</p>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="runAStarOptimization()">Calculate Suggested Adjustments</button>
+  </div>
+  <p style="font-size: 0.9rem; color: #9ca3af; margin-bottom: 1rem;">
+    If you have overspent in lifestyle categories like Dining Out, Entertainment, or Shopping,
+    this tool uses the A* search method to calculate the smallest set of steps needed to bring them back within safe limits.
+  </p>
+  <div id="astarResultsContainer" style="display: none; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px;">
+  </div>
+</div>
+
+<div id="budgetModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="card-header">
+      <h3 class="card-title">Set Category Budget</h3>
+      <button onclick="closeModal('budgetModal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <form onsubmit="handleSaveBudget(event)">
+      <div class="form-group">
+        <label class="form-label">Month</label>
+        <input type="month" name="month" class="form-control" value="{{ selected_month }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select name="category" class="form-control" required>
+          <option value="Rent">Rent</option>
+          <option value="Groceries">Groceries</option>
+          <option value="Utilities">Utilities</option>
+          <option value="Dining Out">Dining Out</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="EMI / Loans">EMI / Loans</option>
+          <option value="Healthcare">Healthcare</option>
+          <option value="Subscriptions">Subscriptions</option>
+          <option value="Travel">Travel</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Limit Amount (₹)</label>
+        <input type="number" step="100" name="limit_amount" class="form-control" placeholder="e.g. 5000" required min="100">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('budgetModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Budget</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function handleSaveBudget(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch('/api/budgets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message);
+        closeModal('budgetModal');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(data.error || "Failed to set budget.", "error");
+      }
+    } catch (err) {
+      showToast("Error updating budget.", "error");
+    }
+  }
+
+  async function runAStarOptimization() {
+    const container = document.getElementById('astarResultsContainer');
+    container.style.display = 'block';
+    container.innerHTML = '<div style="color: #9ca3af;">Calculating steps...</div>';
+
+    try {
+      const res = await fetch('/api/experiments/run/4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dining: 16, entertainment: 8, shopping: 12 })
+      });
+      const data = await res.json();
+      if (data.success && data.a_star_result) {
+        const r = data.a_star_result;
+        let html = `
+          <div style="font-size: 0.95rem; font-weight: 700; color: #a78bfa; margin-bottom: 0.5rem;">
+            Recommended Budget Adjustment Plan (${r.total_cost_g} steps):
+          </div>
+          <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: #cbd5e1;">
+            <span>Current: Dining ₹16k, Ent ₹8k, Shop ₹12k</span> →
+            <span style="color: #34d399;">Target: Dining ₹10k, Ent ₹5k, Shop ₹8k</span>
+          </div>
+          <ul style="margin-left: 1.25rem; font-size: 0.85rem; color: #9ca3af; display: flex; flex-direction: column; gap: 4px;">
+        `;
+        r.action_sequence.slice(0, 6).forEach((act, idx) => {
+          html += `<li>Step ${idx + 1}: ${act}</li>`;
+        });
+        if (r.action_sequence.length > 6) {
+          html += `<li>... +${r.action_sequence.length - 6} more steps</li>`;
+        }
+        html += `</ul>`;
+        container.innerHTML = html;
+      }
+    } catch (err) {
+      container.innerHTML = '<div style="color: #f87171;">Failed to calculate adjustment plan.</div>';
+    }
+  }
+</script>
+{% endblock %}

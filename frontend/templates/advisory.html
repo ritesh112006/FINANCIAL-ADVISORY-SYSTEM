@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Advisor - FinWise{% endblock %}
+{% block page_title %}Financial Advice & Insights{% endblock %}
+{% block page_subtitle %}Personalized feedback calculated from your recorded spending and savings{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem; border-left: 4px solid #10b981; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(17, 24, 39, 0.9));">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Financial Health Summary</h3>
+      <p class="card-subtitle">Month: {{ selected_month }}</p>
+    </div>
+    <span class="metric-badge {% if advisory.metrics.health_score >= 75 %}badge-green{% elif advisory.metrics.health_score >= 50 %}badge-amber{% else %}badge-red{% endif %}" style="font-size: 0.9rem; padding: 4px 12px;">
+      Score: {{ advisory.metrics.health_score }}/100
+    </span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;">
+    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+      <div style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; font-weight: 600;">Spending Status</div>
+      <div style="font-size: 1.1rem; font-weight: 700; color: #34d399; margin: 4px 0;">
+        {{ advisory.fuzzy_controller.status }}
+      </div>
+      <div style="font-size: 0.85rem; color: #cbd5e1;">
+        {{ advisory.fuzzy_controller.financial_advice }}
+      </div>
+    </div>
+
+    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+      <div style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; font-weight: 600;">Target Monthly Savings</div>
+      <div style="font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin: 4px 0;">
+        {{ currency }}{{ "{:,.2f}".format(advisory.hybrid_neuro_fuzzy.potential_monthly_savings_inr) }} ({{ advisory.hybrid_neuro_fuzzy.hybrid_savings_rate_pct }}%)
+      </div>
+      <div style="font-size: 0.85rem; color: #cbd5e1;">
+        {{ advisory.hybrid_neuro_fuzzy.guidance }}
+      </div>
+    </div>
+
+    <div style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 8px;">
+      <div style="font-size: 0.8rem; color: #9ca3af; text-transform: uppercase; font-weight: 600;">Spending Pattern</div>
+      <div style="font-size: 1.1rem; font-weight: 700; color: #a78bfa; margin: 4px 0;">
+        {{ advisory.financial_persona.financial_persona }}
+      </div>
+      <div style="font-size: 0.85rem; color: #cbd5e1;">
+        Discipline Check: <strong>{{ advisory.perceptron_classification.classification }}</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h4 class="card-title">1. Financial Roadmap (State Space)</h4>
+        <p class="card-subtitle">Steps from current position to financial independence</p>
+      </div>
+      <span class="metric-badge badge-green">Path Active</span>
+    </div>
+    <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0.75rem;">
+      Shows milestones based on savings rate, debt position, and emergency reserves.
+    </p>
+    <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 8px;">
+      <div style="font-size: 0.82rem; color: #60a5fa; font-weight: 600; margin-bottom: 6px;">Recommended Progression:</div>
+      <div style="font-size: 0.85rem; color: #f3f4f6; display: flex; flex-direction: column; gap: 6px;">
+        {% for st in advisory.state_space_roadmap.trajectory %}
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #10b981;">●</span>
+          <span>{{ st }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div style="font-size: 0.78rem; color: #9ca3af; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px;">
+        Estimated transition effort: <strong>{{ advisory.state_space_roadmap.total_path_cost_months }} Months</strong>.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h4 class="card-title">2. Financial Rule Checks</h4>
+        <p class="card-subtitle">Safety rules for emergency funds and investments</p>
+      </div>
+      <span class="metric-badge badge-blue">Rule Engine</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <span style="color: #9ca3af;">Emergency Reserve (>= 3 Months):</span>
+        <strong style="color: {% if advisory.expert_system.emergency_fund_adequate %}#34d399{% else %}#f87171{% endif %};">
+          {% if advisory.expert_system.emergency_fund_adequate %}Adequate{% else %}Needs Buffer{% endif %}
+        </strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <span style="color: #9ca3af;">Spending Risk Level:</span>
+        <strong style="color: {% if advisory.expert_system.high_risk_spending %}#f87171{% else %}#34d399{% endif %};">
+          {{ advisory.expert_system.risk_analysis }}
+        </strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <span style="color: #9ca3af;">Ready for Long-term Investment:</span>
+        <strong style="color: {% if advisory.expert_system.eligible_for_investment %}#34d399{% else %}#fbbf24{% endif %};">
+          {% if advisory.expert_system.eligible_for_investment %}Eligible{% else %}Stabilize First{% endif %}
+        </strong>
+      </div>
+      <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px; font-size: 0.82rem; color: #cbd5e1;">
+        <strong style="color: #38bdf8;">Advice:</strong>
+        <ul style="margin-left: 1rem; margin-top: 4px;">
+          {% for r in advisory.expert_system.recommendations %}
+          <li>{{ r }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h4 class="card-title">3. Fuzzy Spending Controller & Risk Profiler</h4>
+        <p class="card-subtitle">Smooth evaluation without rigid cutoff values</p>
+      </div>
+      <span class="metric-badge badge-purple">Fuzzy Logic</span>
+    </div>
+    <div style="font-size: 0.85rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 0.75rem;">
+      <div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+          <span>Spending Throttle Level:</span>
+          <strong>{{ advisory.fuzzy_controller.restriction_percentage }}%</strong>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill {% if advisory.fuzzy_controller.restriction_percentage > 60 %}danger{% endif %}"
+               style="width: {{ advisory.fuzzy_controller.restriction_percentage }}%;"></div>
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px;">
+        <div style="font-size: 0.8rem; font-weight: 700; color: #a78bfa; margin-bottom: 4px;">
+          Recommended Equity Allocation (Mamdani vs Sugeno)
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0;">
+          <span>Mamdani Result:</span>
+          <strong style="color: #38bdf8;">{{ advisory.mamdani_sugeno_comparison.mamdani.output_equity_pct }}%</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin: 4px 0;">
+          <span>Sugeno Result:</span>
+          <strong style="color: #34d399;">{{ advisory.mamdani_sugeno_comparison.sugeno.output_equity_pct }}%</strong>
+        </div>
+        <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 4px;">
+          {{ advisory.mamdani_sugeno_comparison.interpretation }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h4 class="card-title">4. Financial Tips & Autocomplete</h4>
+        <p class="card-subtitle">Domain language model recommendations</p>
+      </div>
+      <span class="metric-badge badge-blue">Language Model</span>
+    </div>
+    <div style="font-size: 0.85rem; color: #cbd5e1; display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: #9ca3af;">Next-Word Suggestion (Bigram)</div>
+        <div style="font-size: 0.9rem; margin-top: 2px;">
+          "{{ advisory.language_model_insights.sample_query }}" →
+          <strong style="color: #34d399;">"{{ advisory.language_model_insights.predicted_next_word }}"</strong>
+        </div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.25); padding: 0.75rem; border-radius: 6px;">
+        <div style="font-size: 0.78rem; text-transform: uppercase; color: #9ca3af;">Advisory Tip (Trigram Model)</div>
+        <div style="font-size: 0.88rem; margin-top: 2px; color: #f3f4f6; font-style: italic;">
+          "{{ advisory.language_model_insights.generated_advisory_text }}"
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

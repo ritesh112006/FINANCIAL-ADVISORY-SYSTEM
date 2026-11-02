@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}FinWise - Financial Dashboard{% endblock %}
+{% block page_title %}Financial Overview{% endblock %}
+{% block page_subtitle %}Monthly summary, spending breakdowns, and advice{% endblock %}
+
+{% block content %}
+<div class="metrics-grid">
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Total Monthly Income</span>
+      <span class="metric-badge badge-green">Income</span>
+    </div>
+    <div class="metric-value">{{ currency }}{{ "{:,.2f}".format(summary.total_income) }}</div>
+    <div class="card-subtitle">Recorded for {{ selected_month }}</div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Total Monthly Expenses</span>
+      <span class="metric-badge badge-red">Expense</span>
+    </div>
+    <div class="metric-value">{{ currency }}{{ "{:,.2f}".format(summary.total_expense) }}</div>
+    <div class="card-subtitle">{{ summary.expense_ratio }}% of monthly income</div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Available Balance</span>
+      <span class="metric-badge {% if summary.balance >= 0 %}badge-blue{% else %}badge-red{% endif %}">Balance</span>
+    </div>
+    <div class="metric-value" style="color: {% if summary.balance >= 0 %}#38bdf8{% else %}#f87171{% endif %};">
+      {{ currency }}{{ "{:,.2f}".format(summary.balance) }}
+    </div>
+    <div class="card-subtitle">Net savings this month</div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Savings Rate</span>
+      <span class="metric-badge badge-purple">{{ summary.savings_rate }}%</span>
+    </div>
+    <div class="metric-value">{{ summary.savings_rate }}%</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" style="width: {{ [summary.savings_rate, 100]|min }}%;"></div>
+    </div>
+    <div class="card-subtitle">Recommended: >= 20%</div>
+  </div>
+
+  <div class="card metric-card">
+    <div class="metric-header">
+      <span>Financial Health Score</span>
+      <span class="metric-badge {% if summary.health_score >= 75 %}badge-green{% elif summary.health_score >= 50 %}badge-amber{% else %}badge-red{% endif %}">
+        {% if summary.health_score >= 75 %}Healthy{% elif summary.health_score >= 50 %}Moderate{% else %}Attention Needed{% endif %}
+      </span>
+    </div>
+    <div class="metric-value" style="color: #10b981;">
+      {{ summary.health_score }}/100
+    </div>
+    <div class="card-subtitle">Calculated from spending ratio</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem; border-left: 4px solid #10b981; background: linear-gradient(90deg, rgba(16, 185, 129, 0.1), rgba(17, 24, 39, 0.7));">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div style="font-size: 0.8rem; text-transform: uppercase; color: #34d399; font-weight: 700; margin-bottom: 4px;">
+        Monthly Financial Advice
+      </div>
+      <div style="font-size: 0.98rem; font-weight: 500; color: #f3f4f6;">
+        {{ advisory.fuzzy_controller.financial_advice }}
+      </div>
+      <div style="font-size: 0.82rem; color: #9ca3af; margin-top: 4px;">
+        Suggested Monthly Savings: <strong>{{ currency }}{{ "{:,.2f}".format(advisory.hybrid_neuro_fuzzy.potential_monthly_savings_inr) }} ({{ advisory.hybrid_neuro_fuzzy.hybrid_savings_rate_pct }}%)</strong>
+        • Spending Profile: <span class="metric-badge badge-blue">{{ advisory.financial_persona.financial_persona }}</span>
+      </div>
+    </div>
+    <a href="{{ url_for('advisory') }}" class="btn btn-secondary btn-sm">View Full Advice →</a>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Expense Breakdown by Category</h3>
+        <p class="card-subtitle">Where your money went this month</p>
+      </div>
+    </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="categoryExpenseChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Budget Limit vs Actual Spending</h3>
+        <p class="card-subtitle">Comparison against planned category budgets</p>
+      </div>
+      <a href="{{ url_for('budgets') }}" class="btn btn-secondary btn-sm">Set Budgets</a>
+    </div>
+    <div style="height: 280px; position: relative;">
+      <canvas id="budgetComparisonChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem;">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Recent Transactions</h3>
+        <p class="card-subtitle">Latest recorded entries</p>
+      </div>
+      <a href="{{ url_for('transactions') }}" class="btn btn-secondary btn-sm">View All</a>
+    </div>
+    <div class="table-wrapper">
+      <table class="custom-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Type</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in recent_txns %}
+          <tr>
+            <td style="color: #9ca3af; font-size: 0.85rem;">{{ t.date }}</td>
+            <td><strong>{{ t.category }}</strong></td>
+            <td>
+              <span class="metric-badge {% if t.type == 'income' %}badge-green{% else %}badge-red{% endif %}">
+                {{ t.type }}
+              </span>
+            </td>
+            <td style="font-weight: 700; color: {% if t.type == 'income' %}#34d399{% else %}#f87171{% endif %};">
+              {% if t.type == 'income' %}+{% else %}-{% endif %}{{ currency }}{{ "{:,.2f}".format(t.amount) }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align: center; color: #6b7280; padding: 2rem;">No transactions recorded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <h3 class="card-title">Savings Goals</h3>
+        <p class="card-subtitle">Progress toward your targets</p>
+      </div>
+      <a href="{{ url_for('savings') }}" class="btn btn-secondary btn-sm">Manage Goals</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      {% for g in goals %}
+      {% set pct = [((g.current_amount / g.target_amount) * 100)|round(1), 100]|min %}
+      <div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 4px;">
+          <strong style="color: #f3f4f6;">{{ g.title }}</strong>
+          <span style="color: #9ca3af;">{{ currency }}{{ "{:,.0f}".format(g.current_amount) }} / {{ currency }}{{ "{:,.0f}".format(g.target_amount) }} ({{ pct }}%)</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill {% if g.status == 'achieved' %}badge-green{% endif %}" style="width: {{ pct }}%;"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280;">
+          <span>Target Date: {{ g.target_date }}</span>
+          <span class="metric-badge {% if g.status == 'achieved' %}badge-green{% else %}badge-blue{% endif %}">{{ g.status }}</span>
+        </div>
+      </div>
+      {% else %}
+      <div style="text-align: center; color: #6b7280; padding: 2rem;">No savings goals created yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const categoryData = {{ summary.expense_by_category|tojson }};
+  const catLabels = Object.keys(categoryData);
+  const catValues = Object.values(categoryData);
+
+  const ctxCategory = document.getElementById('categoryExpenseChart').getContext('2d');
+  new Chart(ctxCategory, {
+    type: 'doughnut',
+    data: {
+      labels: catLabels.length > 0 ? catLabels : ['No Expenses'],
+      datasets: [{
+        data: catValues.length > 0 ? catValues : [1],
+        backgroundColor: [
+          '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#6366f1', '#e11d48'
+        ],
+        borderWidth: 2,
+        borderColor: '#111827'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#9ca3af', font: { family: 'Inter', size: 11 } }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+
+  const budgetCategories = {{ budget_status.categories|tojson }};
+  const bLabels = budgetCategories.map(b => b.category);
+  const bAllocated = budgetCategories.map(b => b.budget_limit);
+  const bSpent = budgetCategories.map(b => b.actual_spent);
+
+  const ctxBudget = document.getElementById('budgetComparisonChart').getContext('2d');
+  new Chart(ctxBudget, {
+    type: 'bar',
+    data: {
+      labels: bLabels,
+      datasets: [
+        {
+          label: 'Budget Limit (₹)',
+          data: bAllocated,
+          backgroundColor: 'rgba(59, 130, 246, 0.4)',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Actual Spent (₹)',
+          data: bSpent,
+          backgroundColor: 'rgba(16, 185, 129, 0.8)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      },
+      plugins: {
+        legend: { labels: { color: '#9ca3af', font: { family: 'Inter' } } }
+      }
+    }
+  });
+</script>
+{% endblock %}

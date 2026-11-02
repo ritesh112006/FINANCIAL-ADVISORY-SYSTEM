@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}Savings Goals - FinWise{% endblock %}
+{% block page_title %}Savings Goals{% endblock %}
+{% block page_subtitle %}Set targets, track progress, and plan savings milestones{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Active Goals</h3>
+      <p class="card-subtitle">Keep track of your savings targets and add deposits</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('newGoalModal')">+ Add New Goal</button>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;">
+    {% for g in goals %}
+    {% set pct = [((g.current_amount / g.target_amount) * 100)|round(1), 100]|min %}
+    {% set remaining = [g.target_amount - g.current_amount, 0]|max %}
+    <div class="card" style="background: rgba(17, 24, 39, 0.95); border-left: 4px solid {% if g.status == 'achieved' %}#10b981{% else %}#3b82f6{% endif %};">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+        <div>
+          <h4 style="font-size: 1.05rem; font-weight: 700; color: #f3f4f6;">{{ g.title }}</h4>
+          <span style="font-size: 0.75rem; color: #9ca3af;">Target Date: {{ g.target_date }}</span>
+        </div>
+        <span class="metric-badge {% if g.status == 'achieved' %}badge-green{% else %}badge-blue{% endif %}">
+          {{ g.status }}
+        </span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px;">
+        <span style="color: #9ca3af;">Saved: <strong>{{ currency }}{{ "{:,.2f}".format(g.current_amount) }}</strong></span>
+        <span style="color: #9ca3af;">Target: <strong>{{ currency }}{{ "{:,.2f}".format(g.target_amount) }}</strong></span>
+      </div>
+
+      <div class="progress-bar-container" style="height: 10px;">
+        <div class="progress-bar-fill {% if g.status == 'achieved' %}badge-green{% endif %}" style="width: {{ pct }}%;"></div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-top: 6px; color: #9ca3af;">
+        <span>Progress: <strong>{{ pct }}%</strong></span>
+        <span>Remaining: <strong style="color: #38bdf8;">{{ currency }}{{ "{:,.2f}".format(remaining) }}</strong></span>
+      </div>
+
+      {% if g.status != 'achieved' %}
+      <div style="margin-top: 1.25rem;">
+        <button class="btn btn-secondary btn-sm" style="width: 100%; border-color: rgba(59, 130, 246, 0.4);" onclick="openDepositModal({{ g.id }}, '{{ g.title }}')">
+          + Add Deposit
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div style="grid-column: 1 / -1; text-align: center; color: #6b7280; padding: 3rem;">
+      No goals created yet. Click "+ Add New Goal" to start tracking.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card" style="border-left: 4px solid #06b6d4;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Savings Milestone Pathway (BFS vs DFS Search)</h3>
+      <p class="card-subtitle">Explore step-by-step paths from zero savings to your goal</p>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="runMilestoneSearch()">Compare Paths</button>
+  </div>
+  <p style="font-size: 0.9rem; color: #9ca3af; margin-bottom: 1rem;">
+    Breadth-First Search (BFS) finds the path with the fewest milestone steps, while Depth-First Search (DFS) focuses on a single milestone track.
+  </p>
+  <div id="searchResultContainer" style="display: none; background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px;">
+  </div>
+</div>
+
+<div id="newGoalModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="card-header">
+      <h3 class="card-title">New Savings Goal</h3>
+      <button onclick="closeModal('newGoalModal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <form onsubmit="handleCreateGoal(event)">
+      <div class="form-group">
+        <label class="form-label">Goal Title</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Emergency Fund" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Amount (₹)</label>
+        <input type="number" step="100" name="target_amount" class="form-control" placeholder="e.g. 150000" required min="1000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currently Saved (₹)</label>
+        <input type="number" step="100" name="current_amount" class="form-control" value="0" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Target Date</label>
+        <input type="date" name="target_date" class="form-control" required>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('newGoalModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Goal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="depositModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="card-header">
+      <h3 class="card-title">Add Deposit</h3>
+      <button onclick="closeModal('depositModal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+    </div>
+    <form onsubmit="handleDepositSavings(event)">
+      <input type="hidden" id="depositGoalId" name="goal_id">
+      <div style="margin-bottom: 1rem; color: #34d399; font-weight: 600;" id="depositGoalTitle"></div>
+      <div class="form-group">
+        <label class="form-label">Deposit Amount (₹)</label>
+        <input type="number" step="100" name="amount" class="form-control" placeholder="e.g. 5000" required min="100">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('depositModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function openDepositModal(id, title) {
+    document.getElementById('depositGoalId').value = id;
+    document.getElementById('depositGoalTitle').textContent = `Goal: ${title}`;
+    openModal('depositModal');
+  }
+
+  async function handleCreateGoal(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch('/api/savings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message);
+        closeModal('newGoalModal');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(data.error || "Failed to create goal.", "error");
+      }
+    } catch (err) {
+      showToast("Error creating goal.", "error");
+    }
+  }
+
+  async function handleDepositSavings(e) {
+    e.preventDefault();
+    const goalId = document.getElementById('depositGoalId').value;
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch(`/api/savings/${goalId}/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Deposit saved.");
+        closeModal('depositModal');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(data.error || "Failed to record deposit.", "error");
+      }
+    } catch (err) {
+      showToast("Error recording deposit.", "error");
+    }
+  }
+
+  async function runMilestoneSearch() {
+    const container = document.getElementById('searchResultContainer');
+    container.style.display = 'block';
+    container.innerHTML = '<div style="color: #9ca3af;">Computing paths...</div>';
+
+    try {
+      const res = await fetch('/api/experiments/run/3', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ start_node: 'Unbudgeted_Cashflow', goal_node: 'Financial_Goal_Achieved' })
+      });
+      const data = await res.json();
+      if (data.success && data.search_comparison) {
+        const sc = data.search_comparison;
+        container.innerHTML = `
+          <div style="font-size: 0.95rem; font-weight: 700; color: #38bdf8; margin-bottom: 0.5rem;">
+            Search Comparison: ${sc.summary}
+          </div>
+          <div style="margin-bottom: 0.75rem;">
+            <strong style="color: #34d399;">BFS Shortest Path (${sc.bfs.step_count} milestones):</strong>
+            <div style="font-size: 0.85rem; color: #e2e8f0; margin-top: 2px;">
+              ${sc.bfs.path.join(' → ')}
+            </div>
+          </div>
+          <div>
+            <strong style="color: #a78bfa;">DFS Alternative Path (${sc.dfs.step_count} milestones):</strong>
+            <div style="font-size: 0.85rem; color: #cbd5e1; margin-top: 2px;">
+              ${sc.dfs.path.join(' → ')}
+            </div>
+          </div>
+        `;
+      }
+    } catch (err) {
+      container.innerHTML = '<div style="color: #f87171;">Failed to compute paths.</div>';
+    }
+  }
+</script>
+{% endblock %}

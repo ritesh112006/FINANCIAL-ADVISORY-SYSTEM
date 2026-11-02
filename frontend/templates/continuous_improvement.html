@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Progress - FinWise{% endblock %}
+{% block page_title %}Monthly Financial Progress{% endblock %}
+{% block page_subtitle %}Compare spending and savings trends over time{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Savings Rate and Expense Trends</h3>
+      <p class="card-subtitle">Month-by-month progress</p>
+    </div>
+  </div>
+  <div style="height: 320px; position: relative;">
+    <canvas id="trendProgressChart"></canvas>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <h3 class="card-title">Month-over-Month Comparison</h3>
+    <span class="metric-badge badge-blue">Monthly Data</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Total Income</th>
+          <th>Total Expenses</th>
+          <th>Net Savings</th>
+          <th>Savings Rate</th>
+          <th>Monthly Change</th>
+          <th>Trend</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr>
+          <td><strong>{{ h.month }}</strong></td>
+          <td style="color: #34d399;">{{ currency }}{{ "{:,.2f}".format(h.income) }}</td>
+          <td style="color: #f87171;">{{ currency }}{{ "{:,.2f}".format(h.expense) }}</td>
+          <td style="font-weight: 700;">{{ currency }}{{ "{:,.2f}".format(h.savings) }}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>{{ h.savings_rate }}%</span>
+              <div class="progress-bar-container" style="width: 80px; margin: 0;">
+                <div class="progress-bar-fill" style="width: {{ [h.savings_rate, 100]|min }}%;"></div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight: 600; color: {% if h.mom_change > 0 %}#34d399{% elif h.mom_change < 0 %}#f87171{% else %}#9ca3af{% endif %};">
+            {% if h.mom_change > 0 %}+{% endif %}{{ h.mom_change }}%
+          </td>
+          <td>
+            <span class="metric-badge {% if 'Improved' in h.trend %}badge-green{% elif 'Declined' in h.trend %}badge-red{% else %}badge-blue{% endif %}">
+              {{ h.trend }}
+            </span>
+          </td>
+          <td>
+            <span class="metric-badge {% if h.health_status == 'Good' %}badge-green{% elif h.health_status == 'Moderate' %}badge-amber{% else %}badge-red{% endif %}">
+              {{ h.health_status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="border-left: 4px solid #3b82f6;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">How Progress Tracking Works</h3>
+      <p class="card-subtitle">Continuous financial adjustment</p>
+    </div>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; font-size: 0.88rem; color: #cbd5e1;">
+    <div style="background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px;">
+      <h4 style="color: #38bdf8; margin-bottom: 6px;">1. Historical Records</h4>
+      <p>The system stores previous monthly records so you can see whether your savings habits are improving over time.</p>
+    </div>
+    <div style="background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px;">
+      <h4 style="color: #34d399; margin-bottom: 6px;">2. Checking Changes</h4>
+      <p>Compares actual expenses against budget limits. If spending spikes in lifestyle categories, the advisor suggests tightening those areas.</p>
+    </div>
+    <div style="background: rgba(0,0,0,0.25); padding: 1.25rem; border-radius: 8px;">
+      <h4 style="color: #a78bfa; margin-bottom: 6px;">3. Updating Suggestions</h4>
+      <p>When savings rates improve consistently, recommended savings targets increase to help you reach goals faster.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const historyData = {{ history|tojson }};
+  const months = historyData.map(h => h.month);
+  const incomes = historyData.map(h => h.income);
+  const expenses = historyData.map(h => h.expense);
+  const savingsRates = historyData.map(h => h.savings_rate);
+
+  const ctx = document.getElementById('trendProgressChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Savings Rate (%)',
+          data: savingsRates,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          yAxisID: 'y1'
+        },
+        {
+          label: 'Total Expenses (₹)',
+          data: expenses,
+          borderColor: '#f87171',
+          borderDash: [5, 5],
+          tension: 0.3,
+          borderWidth: 2,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Total Income (₹)',
+          data: incomes,
+          borderColor: '#38bdf8',
+          borderDash: [2, 2],
+          tension: 0.3,
+          borderWidth: 2,
+          yAxisID: 'y'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#9ca3af' }, grid: { display: false } },
+        y: {
+          type: 'linear',
+          position: 'left',
+          ticks: { color: '#9ca3af' },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        y1: {
+          type: 'linear',
+          position: 'right',
+          ticks: { color: '#34d399', callback: (v) => v + '%' },
+          grid: { display: false }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: '#cbd5e1', font: { family: 'Inter' } } }
+      }
+    }
+  });
+</script>
+{% endblock %}

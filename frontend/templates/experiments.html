@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Experiments Lab - FinWise{% endblock %}
+{% block page_title %}Classroom Experiments Lab{% endblock %}
+{% block page_subtitle %}Adaptation of 10 lab experiments for the financial advisory system{% endblock %}
+
+{% block content %}
+<div
+  style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1.25rem; border-radius: 12px; margin-bottom: 2rem;">
+  <h3 style="color: #34d399; font-size: 1.1rem; margin-bottom: 4px;">Experiments Overview</h3>
+  <p style="font-size: 0.9rem; color: #9ca3af;">
+    Each experiment adapts a classroom programming concept into a specific personal finance feature. You can open any
+    experiment below to test it with sample inputs.
+  </p>
+</div>
+
+<div class="experiments-grid">
+  <div class="card experiment-card" style="border-left-color: #10b981;">
+    <div>
+      <div class="experiment-number">Experiment 01</div>
+      <h3 class="card-title">PEAS Model & Financial State Space</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Robot Navigation PEAS Model</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Defines Performance, Environment, Actuators, and Sensors for the financial advisor. Explores steps from deficit
+        to financial stability.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=1) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #3b82f6;">
+    <div>
+      <div class="experiment-number">Experiment 02</div>
+      <h3 class="card-title">PROLOG Financial Rules & Queries</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Basic Programs in PROLOG</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Uses facts and rules to check whether a user has enough emergency funds, excessive spending, or is ready for
+        investment.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=2) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #06b6d4;">
+    <div>
+      <div class="experiment-number">Experiment 03</div>
+      <h3 class="card-title">Uninformed Search: BFS & DFS Pathways</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: BFS and DFS Search</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Compares queue-based BFS and stack-based DFS to find routes through savings milestones to reach a target goal.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=3) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #8b5cf6;">
+    <div>
+      <div class="experiment-number">Experiment 04</div>
+      <h3 class="card-title">A* Search: Budget Adjustment</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: A* Search for 8-Puzzle</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Uses f(n) = g(n) + h(n) with Manhattan distance to find the quickest sequence of budget cuts across overspent
+        categories.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=4) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #f59e0b;">
+    <div>
+      <div class="experiment-number">Experiment 05</div>
+      <h3 class="card-title">Minimax Adversarial Search</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Minimax Game Tree</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Evaluates financial allocations against unexpected expenses and market conditions to find the safest worst-case
+        outcome.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=5) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #ec4899;">
+    <div>
+      <div class="experiment-number">Experiment 06</div>
+      <h3 class="card-title">Fuzzy Logic Spending Controller</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Fuzzy Fan Speed Controller</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Takes expense-to-income ratio and savings rate as fuzzy inputs to calculate a smooth spending restriction
+        percentage.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=6) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #6366f1;">
+    <div>
+      <div class="experiment-number">Experiment 07</div>
+      <h3 class="card-title">Mamdani vs Sugeno Fuzzy Inference</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Mamdani and Sugeno FIS</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Compares centroid defuzzification (Mamdani) and weighted average (Sugeno) for calculating recommended equity
+        investment percentages.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=7) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #14b8a6;">
+    <div>
+      <div class="experiment-number">Experiment 08</div>
+      <h3 class="card-title">Hybrid Neuro-Fuzzy System</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Hybrid Neuro-Fuzzy AC Control</div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Combines neural network learning from income data with fuzzy budgeting rules (0.6*ANN + 0.4*Fuzzy) to predict
+        monthly savings potential.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=8) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #eab308;">
+    <div>
+      <div class="experiment-number">Experiment 09</div>
+      <h3 class="card-title">Perceptron & Competitive Learning</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Supervised & Unsupervised Learning
+      </div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Supervised Perceptron classifies spending discipline, while unsupervised competitive learning clusters spending
+        patterns into personas.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=9) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+
+  <div class="card experiment-card" style="border-left-color: #f43f5e;">
+    <div>
+      <div class="experiment-number">Experiment 10</div>
+      <h3 class="card-title">Micro & Small Language Models</h3>
+      <div style="font-size: 0.8rem; color: #60a5fa; margin: 4px 0 8px 0;">Original: Bigram & Trigram Language Models
+      </div>
+      <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+        Uses a bigram model for next-word prediction and a trigram model to generate short financial advice sentences.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; margin-top: auto;">
+      <a href="{{ url_for('experiment_detail', exp_id=10) }}" class="btn btn-primary btn-sm" style="width: 100%;">
+        Open Lab →
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

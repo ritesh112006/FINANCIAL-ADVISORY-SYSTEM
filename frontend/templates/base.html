@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FinWise - Personal Financial Advisory System{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand-header">
+      <div class="brand-logo-icon">₹</div>
+      <div class="brand-text">
+        <h2>FinWise</h2>
+        <span class="brand-badge">Advisory System</span>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li>
+        <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+          <span class="nav-icon">📊</span>
+          <span class="nav-text">Dashboard</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('transactions') }}" class="nav-link {% if request.path == '/transactions' %}active{% endif %}">
+          <span class="nav-icon">💳</span>
+          <span class="nav-text">Transactions</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('budgets') }}" class="nav-link {% if request.path == '/budgets' %}active{% endif %}">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-text">Budgets</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('savings') }}" class="nav-link {% if request.path == '/savings' %}active{% endif %}">
+          <span class="nav-icon">🏦</span>
+          <span class="nav-text">Savings Goals</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('advisory') }}" class="nav-link {% if request.path == '/advisory' %}active{% endif %}">
+          <span class="nav-icon">💡</span>
+          <span class="nav-text">Financial Advisor</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('continuous_improvement') }}" class="nav-link {% if request.path == '/continuous-improvement' %}active{% endif %}">
+          <span class="nav-icon">📈</span>
+          <span class="nav-text">Monthly Progress</span>
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('reports') }}" class="nav-link {% if request.path == '/reports' %}active{% endif %}">
+          <span class="nav-icon">📑</span>
+          <span class="nav-text">Reports</span>
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary btn-sm" onclick="reseedDatabaseDemo()" style="width: 100%; margin-bottom: 0.5rem; font-size: 0.75rem;">
+        Load Sample Data
+      </button>
+      <div>FinWise Personal Advisory System</div>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="topbar">
+      <div class="page-title">
+        <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+        <p>{% block page_subtitle %}Manage spending, track budgets, and receive recommendations{% endblock %}</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" onclick="openModal('quickAddModal')">
+          + Add Transaction
+        </button>
+      </div>
+    </header>
+
+    <main class="content-container">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div id="quickAddModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="card-header">
+        <h3 class="card-title">Add New Transaction</h3>
+        <button onclick="closeModal('quickAddModal')" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <form id="quickAddForm" onsubmit="handleQuickAddTransaction(event)">
+        <div class="form-group">
+          <label class="form-label">Transaction Type</label>
+          <select name="type" class="form-control" required>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input type="number" step="0.01" name="amount" class="form-control" placeholder="e.g. 2500" required min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select name="category" class="form-control" required>
+            <option value="Dining Out">Dining Out</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Rent">Rent</option>
+            <option value="Utilities">Utilities</option>
+            <option value="Shopping">Shopping</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="EMI / Loans">EMI / Loans</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Salary">Salary</option>
+            <option value="Freelance">Freelance</option>
+            <option value="Investment / Dividend">Investment / Dividend</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" name="date" class="form-control" id="modalDateInput" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" name="description" class="form-control" placeholder="e.g. Grocery purchase">
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('quickAddModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Transaction</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    document.getElementById('modalDateInput').valueAsDate = new Date();
+    async function handleQuickAddTransaction(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
+
+      try {
+        const res = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.success) {
+          showToast("Transaction saved successfully.");
+          closeModal('quickAddModal');
+          form.reset();
+          setTimeout(() => location.reload(), 800);
+        } else {
+          showToast(result.error || "Failed to save transaction.", "error");
+        }
+      } catch (err) {
+        showToast("Error saving transaction.", "error");
+      }
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

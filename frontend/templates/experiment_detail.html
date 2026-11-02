@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Experiment {{ exp_id }} Lab - FinWise{% endblock %}
+{% block page_title %}Experiment {{ "%02d"|format(exp_id) }} Lab{% endblock %}
+{% block page_subtitle %}Interactive testing and algorithm demonstration{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <a href="{{ url_for('experiments') }}" class="btn btn-secondary btn-sm">← Back to Experiments</a>
+</div>
+
+<div class="card" style="margin-bottom: 2rem; border-left: 4px solid #10b981;">
+  <div class="card-header">
+    <div>
+      <div class="experiment-number">Experiment {{ "%02d"|format(exp_id) }}</div>
+      <h2 id="expTitle" style="font-size: 1.35rem; font-weight: 700; color: #f3f4f6;">Loading...</h2>
+      <div id="expOriginalInfo" style="font-size: 0.85rem; color: #60a5fa; margin-top: 4px;"></div>
+    </div>
+    <span class="metric-badge badge-green">Interactive Lab</span>
+  </div>
+  <p id="expDescription" style="font-size: 0.92rem; color: #cbd5e1; margin-top: 0.5rem;"></p>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Test Parameters</h3>
+      <p class="card-subtitle">Change inputs and run the experiment</p>
+    </div>
+    <button class="btn btn-primary" onclick="executeCurrentExperiment()">▶ Run Experiment</button>
+  </div>
+
+  <div id="expInputsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+  </div>
+
+  <div id="expOutputPanel" style="display: none; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); padding: 1.25rem; border-radius: 8px;">
+    <h4 style="color: #34d399; font-size: 1rem; margin-bottom: 0.75rem;">Output:</h4>
+    <div id="expFormattedResults"></div>
+    <details style="margin-top: 1rem;">
+      <summary style="font-size: 0.8rem; color: #9ca3af; cursor: pointer;">Show Output Data</summary>
+      <pre id="expRawJson" style="font-size: 0.8rem; color: #38bdf8; background: #0a0f1d; padding: 1rem; border-radius: 6px; overflow-x: auto; margin-top: 0.5rem;"></pre>
+    </details>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Notes and Questions</h3>
+    <span class="metric-badge badge-blue">Reference</span>
+  </div>
+  <div id="expAcademicNotes" style="font-size: 0.9rem; color: #cbd5e1; line-height: 1.6;">
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const EXP_ID = {{ exp_id }};
+
+  const EXP_METADATA = {
+    1: {
+      title: "PEAS Model & Financial State Space",
+      original: "Original: Robot Navigation PEAS Formulation",
+      desc: "Represents personal finance as an agent with Performance Measure, Environment, Actuators, and Sensors. Explores paths from Deficit to Financial Independence.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Initial State</label>
+          <select id="param_start_state" class="form-control">
+            <option value="Deficit">Deficit (Expenses > Income)</option>
+            <option value="High_Debt">High_Debt (Active loan or credit burden)</option>
+            <option value="Budget_Balanced">Budget_Balanced (Positive cashflow)</option>
+            <option value="Emergency_Fund_Ready">Emergency_Fund_Ready (3 Months Buffer)</option>
+          </select>
+        </div>
+      `,
+      getPayload: () => ({ start_state: document.getElementById('param_start_state').value }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div style="margin-bottom: 0.5rem;"><strong>Start State:</strong> <span style="color: #f87171;">${data.simulation.start_state}</span></div>
+          <div style="margin-bottom: 0.5rem;"><strong>Goal State:</strong> <span style="color: #34d399;">${data.simulation.goal_state}</span> (Reached: ${data.simulation.goal_reached})</div>
+          <div style="margin-bottom: 0.5rem;"><strong>Milestone Steps:</strong></div>
+          <div style="font-size: 0.85rem; color: #38bdf8; margin-left: 1rem;">${data.simulation.trajectory.join(' → ')}</div>
+          <div style="margin-top: 0.75rem;"><strong>Estimated Path Cost:</strong> ${data.simulation.total_path_cost_months} Months</div>
+        </div>
+      `,
+      notes: `
+        <h4>PEAS Description:</h4>
+        <ul style="margin-left: 1.5rem; margin-bottom: 1rem;">
+          <li><strong>Performance:</strong> Savings rate >= 20%, 3 months emergency fund, stay within budget.</li>
+          <li><strong>Environment:</strong> Salary inflows, recurring expenses, inflation, transactions.</li>
+          <li><strong>Actuators:</strong> Budget caps, savings reminders, spending alerts.</li>
+          <li><strong>Sensors:</strong> Transaction records, balance checks, monthly summaries.</li>
+        </ul>
+        <h4>Viva Questions:</h4>
+        <p><strong>Q: What is PEAS?</strong> A: Performance Measure, Environment, Actuators, Sensors.</p>
+        <p><strong>Q: What is problem formulation?</strong> A: Defining initial state, goal state, actions, transition model, goal test, and path cost.</p>
+      `
+    },
+    2: {
+      title: "PROLOG Financial Expert Rules",
+      original: "Original: Basic Programs in PROLOG",
+      desc: "Uses logic programming rules to check emergency fund adequacy, spending risk, and investment readiness.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Monthly Income (₹)</label>
+          <input type="number" id="param_income" class="form-control" value="65000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Monthly Expense (₹)</label>
+          <input type="number" id="param_expense" class="form-control" value="42000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emergency Fund Balance (₹)</label>
+          <input type="number" id="param_ef" class="form-control" value="150000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">High Interest Debt?</label>
+          <select id="param_debt" class="form-control">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+      `,
+      getPayload: () => ({
+        user_name: "custom_user",
+        profile: {
+          income: parseFloat(document.getElementById('param_income').value),
+          expense: parseFloat(document.getElementById('param_expense').value),
+          emergency_fund: parseFloat(document.getElementById('param_ef').value),
+          has_high_interest_debt: document.getElementById('param_debt').value === 'yes',
+          credit_score: 750
+        }
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Monthly Savings:</strong> ₹${data.evaluation.monthly_savings} (${data.evaluation.savings_rate_pct}%)</div>
+          <div><strong>Emergency Fund Adequate:</strong> ${data.evaluation.emergency_fund_adequate ? '<span style="color:#34d399">Yes</span>' : '<span style="color:#f87171">No</span>'} (Target: ₹${data.evaluation.emergency_fund_target})</div>
+          <div><strong>Spending Risk:</strong> ${data.evaluation.high_risk_spending ? '<span style="color:#f87171">Yes</span>' : '<span style="color:#34d399">Normal</span>'} (${data.evaluation.risk_analysis})</div>
+          <div><strong>Investment Ready:</strong> ${data.evaluation.eligible_for_investment ? '<span style="color:#34d399">Eligible</span>' : '<span style="color:#fbbf24">Not Yet</span>'}</div>
+          <div style="margin-top: 0.5rem; color: #38bdf8;"><strong>Rules Deduced:</strong></div>
+          <ul style="margin-left: 1.5rem;">${data.evaluation.recommendations.map(r => `<li>${r}</li>`).join('')}</ul>
+        </div>
+      `,
+      notes: `
+        <h4>Logic Concepts:</h4>
+        <p>PROLOG evaluates queries by matching facts and rules through unification and backtracking.</p>
+        <h4>Viva Questions:</h4>
+        <p><strong>Q: What is backtracking?</strong> A: When a sub-goal fails, PROLOG backs up to try alternative rules or facts to satisfy the query.</p>
+      `
+    },
+    3: {
+      title: "Uninformed Search (BFS & DFS)",
+      original: "Original: BFS and DFS Campus Route Traversal",
+      desc: "Compares BFS (queue-based, finds shortest path) with DFS (stack-based, deep exploration) to traverse financial milestones.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Start Milestone</label>
+          <select id="param_start_node" class="form-control">
+            <option value="Unbudgeted_Cashflow">Unbudgeted_Cashflow</option>
+            <option value="Expense_Tracking">Expense_Tracking</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Goal Milestone</label>
+          <select id="param_goal_node" class="form-control">
+            <option value="Financial_Goal_Achieved">Financial_Goal_Achieved</option>
+          </select>
+        </div>
+      `,
+      getPayload: () => ({
+        start_node: document.getElementById('param_start_node').value,
+        goal_node: document.getElementById('param_goal_node').value
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div style="color: #34d399; font-weight: 700; margin-bottom: 4px;">BFS Shortest Path (${data.search_comparison.bfs.step_count} steps):</div>
+          <div style="margin-left: 1rem; color: #38bdf8;">${data.search_comparison.bfs.path.join(' → ')}</div>
+          <div style="color: #a78bfa; font-weight: 700; margin: 8px 0 4px 0;">DFS Path (${data.search_comparison.dfs.step_count} steps):</div>
+          <div style="margin-left: 1rem; color: #cbd5e1;">${data.search_comparison.dfs.path.join(' → ')}</div>
+        </div>
+      `,
+      notes: `
+        <h4>BFS vs DFS:</h4>
+        <p>BFS uses FIFO Queue and finds the shortest path in unweighted graphs. DFS uses LIFO Stack and explores one branch completely first.</p>
+      `
+    },
+    4: {
+      title: "Informed Search: A* Budget Reallocation",
+      original: "Original: A* Algorithm for 8-Puzzle Problem",
+      desc: "Uses f(n) = g(n) + h(n) with Manhattan distance to find the shortest series of budget adjustments.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Dining Overspend (₹ in '000s)</label>
+          <input type="number" id="param_dining" class="form-control" value="18">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entertainment Overspend (₹ in '000s)</label>
+          <input type="number" id="param_ent" class="form-control" value="11">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shopping Overspend (₹ in '000s)</label>
+          <input type="number" id="param_shop" class="form-control" value="14">
+        </div>
+      `,
+      getPayload: () => ({
+        dining: parseInt(document.getElementById('param_dining').value),
+        entertainment: parseInt(document.getElementById('param_ent').value),
+        shopping: parseInt(document.getElementById('param_shop').value)
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>A* Steps Required:</strong> ${data.a_star_result.total_cost_g} moves (${data.a_star_result.iterations} iterations)</div>
+          <div style="margin-top: 0.5rem; color: #a78bfa;"><strong>Adjustment Sequence:</strong></div>
+          <ul style="margin-left: 1.5rem; max-height: 200px; overflow-y: auto;">
+            ${data.a_star_result.action_sequence.map((a, i) => `<li>Step ${i+1}: ${a}</li>`).join('')}
+          </ul>
+        </div>
+      `,
+      notes: `
+        <h4>A* Formula:</h4>
+        <p>f(n) = g(n) + h(n), where g(n) is the cost so far and h(n) is the heuristic estimate to the goal.</p>
+      `
+    },
+    5: {
+      title: "Minimax Adversarial Search",
+      original: "Original: Minimax Game Tree Algorithm",
+      desc: "Models financial planning as user decisions against possible economic shocks to guarantee the best worst-case outcome.",
+      inputs: `
+        <div style="grid-column: 1 / -1; font-size: 0.85rem; color: #9ca3af;">
+          Evaluates 8 terminal scenarios covering inflation spikes and unexpected bills.
+        </div>
+      `,
+      getPayload: () => ({}),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Conservative Strategy Worst-Case:</strong> ₹${data.stress_test.conservative_worst_case_guaranteed},000</div>
+          <div><strong>Growth Strategy Worst-Case:</strong> ₹${data.stress_test.growth_worst_case_guaranteed},000</div>
+          <div style="color: #34d399; font-weight: 700; margin-top: 4px;">Minimax Choice: ${data.stress_test.recommended_strategy} (Guaranteed: ₹${data.stress_test.minimax_optimal_value},000)</div>
+        </div>
+      `,
+      notes: `
+        <h4>Minimax Formula:</h4>
+        <p>MAX node picks maximum child value; MIN node picks minimum child value.</p>
+      `
+    },
+    6: {
+      title: "Fuzzy Logic Spending Controller",
+      original: "Original: Fuzzy Fan Speed Controller",
+      desc: "Fuzzifies expense ratio and savings rate into Low, Medium, and High sets to compute a smooth spending restriction percentage.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Expense Ratio (%)</label>
+          <input type="number" id="param_exp_ratio" class="form-control" value="78" min="0" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Savings Rate (%)</label>
+          <input type="number" id="param_sav_rate" class="form-control" value="12" min="0" max="100">
+        </div>
+      `,
+      getPayload: () => ({
+        expense_ratio: parseFloat(document.getElementById('param_exp_ratio').value),
+        savings_rate: parseFloat(document.getElementById('param_sav_rate').value)
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Calculated Spending Restriction:</strong> ${data.fuzzy_control.restriction_percentage}%</div>
+          <div style="color: #fbbf24; font-weight: 700;">Status: ${data.fuzzy_control.status}</div>
+          <div style="margin-top: 4px;"><strong>Advice:</strong> ${data.fuzzy_control.financial_advice}</div>
+        </div>
+      `,
+      notes: `
+        <h4>Fuzzy Logic Stages:</h4>
+        <p>Fuzzification → Rule Base Evaluation → Aggregation → Defuzzification (Centroid method).</p>
+      `
+    },
+    7: {
+      title: "Mamdani vs Sugeno Fuzzy Inference",
+      original: "Original: Mamdani & Sugeno FIS Comparison",
+      desc: "Compares centroid defuzzification (Mamdani) with weighted average (Sugeno) for calculating equity investment percentages.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Discretionary Spending Ratio (%)</label>
+          <input type="number" id="param_dsr" class="form-control" value="28" min="0" max="50">
+        </div>
+      `,
+      getPayload: () => ({ discretionary_spending: parseFloat(document.getElementById('param_dsr').value) }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Mamdani Equity Allocation:</strong> ${data.fis_comparison.mamdani.output_equity_pct}%</div>
+          <div><strong>Sugeno Equity Allocation:</strong> ${data.fis_comparison.sugeno.output_equity_pct}%</div>
+          <div><strong>Difference:</strong> ${data.fis_comparison.absolute_difference}%</div>
+          <div style="color: #38bdf8; margin-top: 4px;">${data.fis_comparison.interpretation}</div>
+        </div>
+      `,
+      notes: `
+        <h4>Difference:</h4>
+        <p>Mamdani uses fuzzy sets as rule outputs and requires centroid defuzzification. Sugeno uses constants and computes a weighted average.</p>
+      `
+    },
+    8: {
+      title: "Hybrid Neuro-Fuzzy System",
+      original: "Original: Hybrid Neuro-Fuzzy Air-Conditioning Control",
+      desc: "Combines an MLPRegressor neural network with fuzzy budgeting rules using 0.6*ANN + 0.4*Fuzzy to predict monthly savings potential.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Monthly Income (₹)</label>
+          <input type="number" id="param_hnfs_inc" class="form-control" value="75000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fixed Living Expenses (₹)</label>
+          <input type="number" id="param_hnfs_ess" class="form-control" value="38000">
+        </div>
+      `,
+      getPayload: () => ({
+        income: parseFloat(document.getElementById('param_hnfs_inc').value),
+        essential_expenses: parseFloat(document.getElementById('param_hnfs_ess').value)
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Neural Network Prediction:</strong> ${data.hybrid_prediction.ann_predicted_rate}%</div>
+          <div><strong>Fuzzy Logic Prediction:</strong> ${data.hybrid_prediction.fuzzy_predicted_rate}%</div>
+          <div style="color: #34d399; font-weight: 700; margin-top: 4px;">
+            Combined Savings Potential: ${data.hybrid_prediction.hybrid_savings_rate_pct}% (₹${data.hybrid_prediction.potential_monthly_savings_inr}/month)
+          </div>
+          <div><strong>Guidance:</strong> ${data.hybrid_prediction.guidance}</div>
+        </div>
+      `,
+      notes: `
+        <h4>Ensemble Formula:</h4>
+        <p>Output = 0.6 * ANN_pred + 0.4 * Fuzzy_pred.</p>
+      `
+    },
+    9: {
+      title: "Supervised & Unsupervised Neural Learning",
+      original: "Original: Perceptron & Competitive Learning Rules",
+      desc: "Perceptron classifies spending discipline (Healthy vs At Risk), while competitive learning clusters spending patterns into personas.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Savings Rate (%)</label>
+          <input type="number" id="param_nn_sav" class="form-control" value="35">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Essential Discipline (%)</label>
+          <input type="number" id="param_nn_ess" class="form-control" value="85">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Discretionary Control (%)</label>
+          <input type="number" id="param_nn_disc" class="form-control" value="80">
+        </div>
+      `,
+      getPayload: () => ({
+        savings_rate: parseFloat(document.getElementById('param_nn_sav').value),
+        essential_discipline: parseFloat(document.getElementById('param_nn_ess').value),
+        discretionary_control: parseFloat(document.getElementById('param_nn_disc').value)
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Perceptron Classification:</strong> <span style="color:#34d399">${data.perceptron.classification}</span></div>
+          <div><strong>Discovered Persona:</strong> <span style="color:#a78bfa">${data.persona_clustering.financial_persona}</span> (Cluster #${data.persona_clustering.assigned_cluster})</div>
+        </div>
+      `,
+      notes: `
+        <h4>Learning Rules:</h4>
+        <p>Perceptron: W = W + eta * (t - y) * X. Competitive learning: W_winner = W_winner + eta * (X - W_winner).</p>
+      `
+    },
+    10: {
+      title: "Financial Language Models (µLM & SLM)",
+      original: "Original: Developing SLMs and µLMs",
+      desc: "Bigram model for next-word prediction and trigram model for generating short financial advice sentences.",
+      inputs: `
+        <div class="form-group">
+          <label class="form-label">Word 1</label>
+          <input type="text" id="param_w1" class="form-control" value="emergency">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Word 2</label>
+          <input type="text" id="param_w2" class="form-control" value="fund">
+        </div>
+      `,
+      getPayload: () => ({
+        word1: document.getElementById('param_w1').value,
+        word2: document.getElementById('param_w2').value
+      }),
+      formatResult: (data) => `
+        <div style="font-size: 0.9rem; color: #e2e8f0;">
+          <div><strong>Bigram Prediction:</strong> "${data.micro_lm.input}" → <span style="color:#34d399">"${data.micro_lm.predicted}"</span></div>
+          <div><strong>Trigram Prediction:</strong> ("${data.small_lm.context.join(' ')}") → <span style="color:#38bdf8">"${data.small_lm.predicted}"</span></div>
+          <div style="margin-top: 6px; color: #cbd5e1;"><strong>Generated Sentence:</strong></div>
+          <div style="font-style: italic; color: #f3f4f6; margin-left: 1rem; margin-top: 2px;">"${data.generated_sentence}"</div>
+        </div>
+      `,
+      notes: `
+        <h4>Formulas:</h4>
+        <p>Bigram: P(w_i|w_{i-1}). Trigram: P(w_i|w_{i-2}, w_{i-1}).</p>
+      `
+    }
+  };
+
+  const meta = EXP_METADATA[EXP_ID];
+  if (meta) {
+    document.getElementById('expTitle').textContent = meta.title;
+    document.getElementById('expOriginalInfo').textContent = meta.original;
+    document.getElementById('expDescription').textContent = meta.desc;
+    document.getElementById('expInputsContainer').innerHTML = meta.inputs;
+    document.getElementById('expAcademicNotes').innerHTML = meta.notes;
+  }
+
+  async function executeCurrentExperiment() {
+    const meta = EXP_METADATA[EXP_ID];
+    if (!meta) return;
+
+    const payload = meta.getPayload();
+    const outputPanel = document.getElementById('expOutputPanel');
+    const formattedDiv = document.getElementById('expFormattedResults');
+    const rawPre = document.getElementById('expRawJson');
+
+    outputPanel.style.display = 'block';
+    formattedDiv.innerHTML = '<div style="color: #9ca3af;">Running...</div>';
+
+    try {
+      const res = await fetch(`/api/experiments/run/${EXP_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        formattedDiv.innerHTML = meta.formatResult(data);
+        rawPre.textContent = JSON.stringify(data, null, 2);
+        showToast(`Experiment ${EXP_ID} completed.`);
+      } else {
+        formattedDiv.innerHTML = `<div style="color: #f87171;">Error: ${data.error}</div>`;
+      }
+    } catch (err) {
+      formattedDiv.innerHTML = `<div style="color: #f87171;">Could not reach server.</div>`;
+    }
+  }
+</script>
+{% endblock %}

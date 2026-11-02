@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - FinWise{% endblock %}
+{% block page_title %}Transactions Ledger{% endblock %}
+{% block page_subtitle %}Add, view, and manage income deposits and expenses{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 1.5rem;">
+  <div class="card-header">
+    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <input type="text" id="txnSearchInput" class="form-control" placeholder="Search by category or note..." style="width: 320px;" onkeyup="filterTxnTable()">
+      <select id="typeFilter" class="form-control" style="width: 160px;" onchange="filterTxnTable()">
+        <option value="all">All Types</option>
+        <option value="income">Income Only</option>
+        <option value="expense">Expense Only</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('quickAddModal')">+ Add Transaction</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="custom-table" id="transactionsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Amount</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr class="txn-row" data-type="{{ t.type }}" data-cat="{{ t.category|lower }}" data-desc="{{ (t.description or '')|lower }}">
+          <td style="color: #6b7280; font-size: 0.8rem;">#{{ t.id }}</td>
+          <td style="color: #9ca3af; font-size: 0.88rem;">{{ t.date }}</td>
+          <td><strong>{{ t.category }}</strong></td>
+          <td>
+            <span class="metric-badge {% if t.type == 'income' %}badge-green{% else %}badge-red{% endif %}">
+              {{ t.type }}
+            </span>
+          </td>
+          <td style="color: #9ca3af;">{{ t.description or '-' }}</td>
+          <td style="font-weight: 700; color: {% if t.type == 'income' %}#34d399{% else %}#f87171{% endif %};">
+            {% if t.type == 'income' %}+{% else %}-{% endif %}{{ currency }}{{ "{:,.2f}".format(t.amount) }}
+          </td>
+          <td>
+            <button class="btn btn-secondary btn-sm" style="color: #f87171;" onclick="deleteTransaction({{ t.id }})">
+              Delete
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: #6b7280; padding: 3rem;">
+            No transactions found. Click "+ Add Transaction" to add your first transaction.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function filterTxnTable() {
+    const search = document.getElementById('txnSearchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('typeFilter').value;
+    const rows = document.querySelectorAll('.txn-row');
+
+    rows.forEach(r => {
+      const type = r.getAttribute('data-type');
+      const cat = r.getAttribute('data-cat');
+      const desc = r.getAttribute('data-desc');
+
+      const matchesSearch = cat.includes(search) || desc.includes(search);
+      const matchesType = (typeFilter === 'all') || (type === typeFilter);
+
+      if (matchesSearch && matchesType) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+
+  async function deleteTransaction(id) {
+    if (!confirm(`Delete transaction #${id}?`)) return;
+    try {
+      const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        showToast("Transaction deleted.");
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(data.error || "Failed to delete transaction.", "error");
+      }
+    } catch (err) {
+      showToast("Error communicating with server.", "error");
+    }
+  }
+</script>
+{% endblock %}

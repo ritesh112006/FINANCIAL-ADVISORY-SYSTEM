@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - FinWise{% endblock %}
+{% block page_title %}Financial Reports{% endblock %}
+{% block page_subtitle %}Monthly summaries and transaction export{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Export Transactions</h3>
+      <p class="card-subtitle">Download all your recorded transactions in CSV format</p>
+    </div>
+    <a href="{{ url_for('export_csv') }}" class="btn btn-primary">
+      Download CSV
+    </a>
+  </div>
+  <p style="font-size: 0.88rem; color: #9ca3af;">
+    Exports transaction date, type, category, amount, and description for use in Excel or Google Sheets.
+  </p>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-header">
+    <h3 class="card-title">Monthly Summary</h3>
+    <span class="metric-badge badge-green">Monthly Summary</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Period</th>
+          <th>Total Income</th>
+          <th>Total Expenses</th>
+          <th>Net Savings</th>
+          <th>Savings Rate</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr>
+          <td><strong>{{ h.month }}</strong></td>
+          <td style="color: #34d399;">{{ currency }}{{ "{:,.2f}".format(h.income) }}</td>
+          <td style="color: #f87171;">{{ currency }}{{ "{:,.2f}".format(h.expense) }}</td>
+          <td style="font-weight: 700;">{{ currency }}{{ "{:,.2f}".format(h.savings) }}</td>
+          <td>{{ h.savings_rate }}%</td>
+          <td>
+            <span class="metric-badge {% if h.savings_rate >= 25 %}badge-green{% elif h.savings_rate >= 10 %}badge-amber{% else %}badge-red{% endif %}">
+              {{ h.health_status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Category Spending Breakdown</h3>
+    <span class="metric-badge badge-blue">Current Month</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="custom-table">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Total Spent</th>
+          <th>Share of Expenses</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat, amt in metrics.expense_by_category.items() %}
+        {% set share = ((amt / metrics.total_expense) * 100)|round(1) if metrics.total_expense > 0 else 0 %}
+        <tr>
+          <td><strong>{{ cat }}</strong></td>
+          <td style="font-weight: 600;">{{ currency }}{{ "{:,.2f}".format(amt) }}</td>
+          <td>{{ share }}%</td>
+          <td>
+            {% if cat in ['Rent', 'Groceries', 'Utilities', 'Healthcare', 'EMI / Loans'] %}
+              <span class="metric-badge badge-blue">Essential</span>
+            {% else %}
+              <span class="metric-badge badge-purple">Discretionary</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
